@@ -72,16 +72,16 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
      * 缓存是否有效
      */
     fun isCacheValid(project: ModuleProject): Boolean {
-        val aarFile = project.obtainCacheAARFile()
-        if (!aarFile.exists()) {
-            FastBuilderLogger.logLifecycle("${project.moduleExtension.name} don't find cache aar.")
-            return false
-        }
+//        val aarFile = project.obtainCacheAARFile()
+//        if (!aarFile.exists()) {
+//            FastBuilderLogger.logLifecycle("${project.moduleExtension.name} don't find cache aar.")
+//            return false
+//        }
         val propertyInfo = getPropertyInfo()
         val currentModify = project.obtainLastModified()
         val lastModify = propertyInfo.getProperty(project.moduleExtension.aarName)
         if (currentModify.toString() == lastModify) {
-            FastBuilderLogger.logLifecycle("${project.moduleExtension.name}  found cache aar.")
+            FastBuilderLogger.logLifecycle("${project.moduleExtension.name}     found cache aar.")
             return true
         }
         FastBuilderLogger.logLifecycle("${project.moduleExtension.name} aar cache invalid.")

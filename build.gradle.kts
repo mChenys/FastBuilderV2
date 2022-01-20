@@ -8,12 +8,12 @@ plugins {
 
 val artifactId="FastBuilder"
 val groupName = "io.github.tiyateam.fastbuilder"
-val artifactVersion = "1.0.74"
+val artifactVersion = "1.0.85"
 group = groupName
 version = artifactVersion
 
 pluginBundle {
-    website = "https://github.com/TIYATEAM/FastBuilder"
+    website = "https://github.com/TIYATEAM/FastBuilder  "
     vcsUrl = "https://github.com/TIYATEAM/FastBuilder"
     tags = listOf("Android", "aar", "compile", "fast")
 }

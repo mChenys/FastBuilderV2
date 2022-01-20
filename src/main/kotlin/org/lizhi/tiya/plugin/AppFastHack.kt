@@ -17,6 +17,7 @@ import org.gradle.api.Task
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs
 import org.gradle.api.tasks.incremental.InputFileDetails
 import org.jetbrains.kotlin.gradle.tasks.HackCompilerIntermediary
+import org.lizhi.tiya.log.FastBuilderLogger
 import java.util.ArrayList
 
 class AppFastHack constructor(task: Task) : HackCompilerIntermediary(task) {
@@ -32,10 +33,21 @@ class AppFastHack constructor(task: Task) : HackCompilerIntermediary(task) {
 
         input.outOfDate { modified.add(it) }
         input.removed { removed.add(it) }
+        FastBuilderLogger.logLifecycle("------------------------------------------------------------------------")
+        FastBuilderLogger.logLifecycle("+++++++++ ${task.project.name}:${task.name}: isIncremental ${input.isIncremental}+++++")
+        FastBuilderLogger.logLifecycle("modified ${modified.map { it.file }.map { it.path }}")
+        FastBuilderLogger.logLifecycle("removed ${modified.map { it.file }.map { it.path }}")
+        FastBuilderLogger.logLifecycle("------------------------------------------------------------------------")
         val buildDir = task.project.buildDir.path
-        filterFile(modified.iterator(), buildDir)
-        filterFile(removed.iterator(), buildDir)
-
+        if (task.name.startsWith("kapt", true)) {
+            filterFile(modified.iterator(), buildDir)
+            filterFile(removed.iterator(), buildDir)
+        }
+        FastBuilderLogger.logLifecycle("-------------------------------过滤结果-----------------------------------------")
+        FastBuilderLogger.logLifecycle("+++++++++ ${task.project.name}:${task.name}: isIncremental ${input.isIncremental}+++++")
+        FastBuilderLogger.logLifecycle("modified ${modified.map { it.file }.map { it.path }}")
+        FastBuilderLogger.logLifecycle("removed ${modified.map { it.file }.map { it.path }}")
+        FastBuilderLogger.logLifecycle("------------------------------------------------------------------------")
         return FastIncrementalTaskInputs(input.isIncremental, modified, removed)
     }
 
@@ -47,15 +59,15 @@ class AppFastHack constructor(task: Task) : HackCompilerIntermediary(task) {
             val moFileDetails = moIterator.next()
             val moFile = moFileDetails.file
             val moPath = moFile.path
-           val isKapt= task.name.startsWith("kapt",true)
-            if (!moFile.path.startsWith(buildDir)&&!moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
+            val isKapt = task.name.startsWith("kapt", true)
+            if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
                 moIterator.remove()
             } else {
                 if (moPath.endsWith(".jar", true)) {
                     moIterator.remove()
                     continue
                 }
-                if (isKapt&&(moPath.endsWith(".kt") || moPath.endsWith(".java"))) {
+                if (isKapt && (moPath.endsWith(".kt") || moPath.endsWith(".java"))) {
                     moIterator.remove()
                     continue
                 }
@@ -68,11 +80,7 @@ class AppFastHack constructor(task: Task) : HackCompilerIntermediary(task) {
         }
     }
 
-    override fun hackTaskAction(input: IncrementalTaskInputs):Boolean {
-        return if (input.isIncremental && removed.isEmpty() && modified.isEmpty()) {
-            true
-        } else {
-            false
-        }
+    override fun hackTaskAction(input: IncrementalTaskInputs): Boolean {
+        return task.name.startsWith("kapt", true) && input.isIncremental && removed.isEmpty() && modified.isEmpty()
     }
 }

@@ -20,9 +20,10 @@ import org.jetbrains.kotlin.gradle.tasks.HackCompilerIntermediary
 import org.lizhi.tiya.log.FastBuilderLogger
 import java.util.ArrayList
 
-class FastHackCompilerIntermediary constructor(task: Task) : HackCompilerIntermediary(task) {
+class AppFastCompileHack constructor(task: Task) : HackCompilerIntermediary(task) {
     val modified = ArrayList<InputFileDetails>()
     val removed = ArrayList<InputFileDetails>()
+
     override fun changeIncrementalTaskInputs(input: IncrementalTaskInputs): IncrementalTaskInputs {
         if (!input.isIncremental) {
             return super.changeIncrementalTaskInputs(input)
@@ -48,16 +49,10 @@ class FastHackCompilerIntermediary constructor(task: Task) : HackCompilerInterme
         return FastIncrementalTaskInputs(input.isIncremental, modified, removed)
     }
 
-    override fun hackTaskAction(input: IncrementalTaskInputs): Boolean {
-        return task.name.startsWith("kapt", true) && input.isIncremental && removed.isEmpty() && modified.isEmpty()
-    }
-
     private fun filterFile(
         moIterator: MutableIterator<InputFileDetails>,
         buildDir: String
     ) {
-        val isKapt = task.name.startsWith("kapt", true)
-
         while (moIterator.hasNext()) {
             val moFileDetails = moIterator.next()
             val moFile = moFileDetails.file
@@ -65,15 +60,6 @@ class FastHackCompilerIntermediary constructor(task: Task) : HackCompilerInterme
             if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
                 moIterator.remove()
             } else {
-                if (moPath.endsWith(".jar", true)) {
-                    moIterator.remove()
-                    continue
-                }
-                //todo 这里应该根据内容来定义是否生产
-                if (isKapt && (moPath.endsWith(".kt") || moPath.endsWith(".java"))) {
-                    moIterator.remove()
-                    continue
-                }
                 if (!moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
                     moIterator.remove()
                     continue
@@ -81,5 +67,9 @@ class FastHackCompilerIntermediary constructor(task: Task) : HackCompilerInterme
             }
 
         }
+    }
+
+    override fun hackTaskAction(input: IncrementalTaskInputs): Boolean {
+        return input.isIncremental && removed.isEmpty() && modified.isEmpty()
     }
 }

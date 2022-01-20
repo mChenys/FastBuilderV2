@@ -33,8 +33,8 @@ abstract class AARBuilderTask @Inject constructor(@Internal val pluginContext: I
 //    @InputFiles
 //    abstract fun getInputAARList(): ConfigurableFileCollection
 
-    @OutputDirectory
-    var outPutDirFile = File(".")
+//    @OutputDirectory
+//    var outPutDirFile = File(".")
 
 //    @Internal
 //    var moduleProjectCacheMap = HashMap<String, ModuleProject>()
@@ -81,9 +81,9 @@ abstract class AARBuilderTask @Inject constructor(@Internal val pluginContext: I
     /**
      * 设置aar输出路径
      */
-    fun aarOutDir(storeLibsDir: File) {
-        outPutDirFile = storeLibsDir
-    }
+//    fun aarOutDir(storeLibsDir: File) {
+//        outPutDirFile = storeLibsDir
+//    }
 
     /**
      * 声明aar的构建

@@ -198,7 +198,7 @@ class DependencyReplaceHelper(private val pluginContext: IPluginContext) {
             } else {
                 FastBuilderLogger.logLifecycle("${currentProject.name} 依赖 ${dependencyModuleProject.obtainName()} 没有命中缓存")
                 // aar缓存无效,重新声明要构建的aar
-                AARBuilderTask.prepare(pluginContext, dependencyModuleProject)
+//                AARBuilderTask.prepare(pluginContext, dependencyModuleProject)
             }
         }
 

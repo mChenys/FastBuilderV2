@@ -67,7 +67,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
                 propertyFileConfig.saveConfig()
             }
             // 设置task输出目录
-            aarOutDir(projectExtension.moduleAarsDir)
+//            aarOutDir(projectExtension.moduleAarsDir)
         }
         // 初始化依赖替换帮助类
         this.dependencyReplaceHelper = DependencyReplaceHelper(this)
@@ -76,37 +76,12 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
         // 全局配置完成后执行
         project.gradle.projectsEvaluated {
 
-            project.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
-                task.hackCompilerIntermediary = AppFastHack(task)
-            }
-
-            project.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
-                task.hackCompilerIntermediary = AppFastHack(task)
-            }
-            project.rootProject.allprojects { pro ->
-                if (pro != project) {
-                    pro.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
-                        task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
-                    }
-                    pro.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
-                        task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
-                    }
-                }
-
-            }
 
             if (!projectExtension.pluginEnable) {
                 return@projectsEvaluated
             }
             val androidExtension = project.extensions.getByName("android") as BaseAppModuleExtension
             androidExtension.applicationVariants.all { variant ->
-//                if (!propertyFileConfig.existConfigFile()) {
-//                    variant.assembleProvider.get().dependsOn(project.tasks.getByName("clean").apply {
-//                        doLast {
-//                            FastBuilderLogger.logLifecycle("清理任务执行完毕by:${variant.assembleProvider.get().name}")
-//                        }
-//                    })
-//                }
                 // 在assemble任务之后执行aar的构建任务
                 variant.assembleProvider.get().finalizedBy(this.aarBuilderTask)
             }
@@ -115,14 +90,6 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
             //赋值日志是否启用
             FastBuilderLogger.enableLogging = projectExtension.logEnable
 
-            // 设置module工程的flat仓库,为后续添加aar做准备
-            // https://issuetracker.google.com/issues/165821826
-            for (childProject in project.rootProject.childProjects) {
-                childProject.value.repositories.flatDir { flatDirectoryArtifactRepository ->
-                    flatDirectoryArtifactRepository.dir(projectExtension.moduleAarsDir)
-                    flatDirectoryArtifactRepository.dir(projectExtension.thirdPartyAarsDir)
-                }
-            }
             // 获取有效的启动任务,若没有配置,则采主工程命名的task
             val launcherTaskName = project.gradle.startParameter.taskNames.firstOrNull { taskName ->
                 if (projectExtension.detectLauncherRegex.isNullOrBlank()) {
@@ -136,11 +103,39 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
                 FastBuilderLogger.logLifecycle("检测任务不相关不启用替换逻辑")
                 return@projectsEvaluated
             }
+
+            project.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
+                task.hackCompilerIntermediary = AppFastHack(task)
+            }
+
+            project.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
+                task.hackCompilerIntermediary = AppFastHack(task)
+            }
+            project.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
+                task.hackCompilerIntermediary = AppFastCompileHack(task)
+            }
+            project.rootProject.allprojects { pro ->
+                if (pro != project) {
+                    pro.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
+                        task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
+                    }
+                    pro.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
+                        task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
+                    }
+                }
+            }
+
+
             // 初始化module工程
             moduleProjectList = propertyFileConfig.prepareByConfig()
 
-            // 开始替换依赖
-//            dependencyReplaceHelper.replaceDependency()
+            for (moduleProject in moduleProjectList) {
+                if (moduleProject.cacheValid) {
+                    moduleProject.obtainProject().tasks.all { proTask->
+                        proTask.onlyIf { false }
+                    }
+                }
+            }
 
             val endTime = System.currentTimeMillis();
             FastBuilderLogger.logLifecycle("插件花費的配置時間${endTime - starTime}")
