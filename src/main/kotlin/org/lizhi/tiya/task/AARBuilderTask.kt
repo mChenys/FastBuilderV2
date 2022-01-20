@@ -30,50 +30,53 @@ import javax.inject.Inject
  */
 abstract class AARBuilderTask @Inject constructor(@Internal val pluginContext: IPluginContext) : DefaultTask() {
 
-    @InputFiles
-    abstract fun getInputAARList(): ConfigurableFileCollection
+//    @InputFiles
+//    abstract fun getInputAARList(): ConfigurableFileCollection
 
     @OutputDirectory
     var outPutDirFile = File(".")
 
-    @Internal
-    var moduleProjectCacheMap = HashMap<String, ModuleProject>()
+//    @Internal
+//    var moduleProjectCacheMap = HashMap<String, ModuleProject>()
 
     @TaskAction
     fun perform() {
+        for (moduleProject in pluginContext.getModuleProjectList()) {
+                pluginContext.getPropertyConfig().updateModify(moduleProject)
+        }
         pluginContext.getPropertyConfig().saveAppLastModified()
         // 设置拷贝任务
-        project.copy {
-            it.from(getInputAARList())
-            it.into(outPutDirFile)
-            it.rename { name ->
-                val moduleProject = moduleProjectCacheMap[name]
-                if (moduleProject != null) {
-                    FastBuilderLogger.logLifecycle("Copy aar  from $name to ${moduleProject.moduleExtension.aarName}.")
-                    // 更新记录
-                    pluginContext.getPropertyConfig().updateModify(moduleProject)
-                    return@rename moduleProject.moduleExtension.aarName
-                }
-                name
-            }
-        }
+//        project.copy {
+//            it.from(getInputAARList())
+//            it.into(outPutDirFile)
+//            it.rename { name ->
+//                val moduleProject = moduleProjectCacheMap[name]
+//                if (moduleProject != null) {
+//                    FastBuilderLogger.logLifecycle("Copy aar  from $name to ${moduleProject.moduleExtension.aarName}.")
+//                    // 更新记录
+//                    pluginContext.getPropertyConfig().updateModify(moduleProject)
+//                    return@rename moduleProject.moduleExtension.aarName
+//                }
+//                name
+//            }
+//        }
     }
 
     /**
      * 设置aar输入源
      */
-    fun aarInput(
-        taskProvider: TaskProvider<Zip>,
-        moduleProject: ModuleProject,
-        packageLibraryProvider: TaskProvider<Task>
-    ) {
-        getInputAARList().from(taskProvider)
-        // 兼容高本版
-        dependsOn(packageLibraryProvider.get())
-        val zip = taskProvider.get()
-        val archiveFileName = zip.archiveFileName.get()
-        moduleProjectCacheMap[archiveFileName] = moduleProject
-    }
+//    fun aarInput(
+//        taskProvider: TaskProvider<Zip>,
+//        moduleProject: ModuleProject,
+//        packageLibraryProvider: TaskProvider<Task>
+//    ) {
+//        getInputAARList().from(taskProvider)
+//        // 兼容高本版
+//        dependsOn(packageLibraryProvider.get())
+//        val zip = taskProvider.get()
+//        val archiveFileName = zip.archiveFileName.get()
+//        moduleProjectCacheMap[archiveFileName] = moduleProject
+//    }
 
     /**
      * 设置aar输出路径
@@ -86,28 +89,28 @@ abstract class AARBuilderTask @Inject constructor(@Internal val pluginContext: I
      * 声明aar的构建
      */
     companion object {
-        fun prepare(context: IPluginContext, moduleProject: ModuleProject) {
-            // 构建子模块的Project
-            val project = moduleProject.obtainProject()
-            project.plugins.all { plugin ->
-                // 保险起见,这里还是判断下Android module工程
-                if (plugin is com.android.build.gradle.LibraryPlugin) {
-                    val android: LibraryExtension = project.extensions.getByName("android") as LibraryExtension
-                    android.libraryVariants.all { variant ->
-                        if (moduleProject.moduleExtension.useDebug
-                            && variant.buildType.name.equals("debug", true) // 仅处理debug包
-                            && variant.flavorName == moduleProject.moduleExtension.flavorName
-                        ) {
-                            val packageLibraryProvider = variant.packageLibraryProvider
-                            // 构建aar输入源和输出源关联
-                            context.getAARBuilderTask()
-                                .aarInput(packageLibraryProvider, moduleProject, variant.assembleProvider)
-                            FastBuilderLogger.logLifecycle("${moduleProject.obtainName()}:  aar join build")
-                            return@all
-                        }
-                    }
-                }
-            }
-        }
+//        fun prepare(context: IPluginContext, moduleProject: ModuleProject) {
+//            // 构建子模块的Project
+//            val project = moduleProject.obtainProject()
+//            project.plugins.all { plugin ->
+//                // 保险起见,这里还是判断下Android module工程
+//                if (plugin is com.android.build.gradle.LibraryPlugin) {
+//                    val android: LibraryExtension = project.extensions.getByName("android") as LibraryExtension
+//                    android.libraryVariants.all { variant ->
+//                        if (moduleProject.moduleExtension.useDebug
+//                            && variant.buildType.name.equals("debug", true) // 仅处理debug包
+//                            && variant.flavorName == moduleProject.moduleExtension.flavorName
+//                        ) {
+//                            val packageLibraryProvider = variant.packageLibraryProvider
+//                            // 构建aar输入源和输出源关联
+//                            context.getAARBuilderTask()
+//                                .aarInput(packageLibraryProvider, moduleProject, variant.assembleProvider)
+//                            FastBuilderLogger.logLifecycle("${moduleProject.obtainName()}:  aar join build")
+//                            return@all
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 }

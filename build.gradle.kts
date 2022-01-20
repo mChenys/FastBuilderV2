@@ -8,7 +8,7 @@ plugins {
 
 val artifactId="FastBuilder"
 val groupName = "io.github.tiyateam.fastbuilder"
-val artifactVersion = "1.0.62"
+val artifactVersion = "1.0.74"
 group = groupName
 version = artifactVersion
 
@@ -19,8 +19,8 @@ pluginBundle {
 }
 
 repositories {
-    google()
     mavenLocal()
+    google()
     mavenCentral()
 }
 

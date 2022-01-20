@@ -16,6 +16,9 @@ package org.lizhi.tiya.plugin
 import com.android.build.gradle.internal.dsl.BaseAppModuleExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.jetbrains.kotlin.gradle.internal.KaptGenerateStubsTask
+import org.jetbrains.kotlin.gradle.internal.KaptWithKotlincTask
+import org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile
 import org.lizhi.tiya.config.PropertyFileConfig
 import org.lizhi.tiya.dependency.DependencyReplaceHelper
 import org.lizhi.tiya.extension.ProjectExtension
@@ -69,20 +72,41 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
         // 初始化依赖替换帮助类
         this.dependencyReplaceHelper = DependencyReplaceHelper(this)
 
+
         // 全局配置完成后执行
         project.gradle.projectsEvaluated {
+
+            project.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
+                task.hackCompilerIntermediary = AppFastHack(task)
+            }
+
+            project.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
+                task.hackCompilerIntermediary = AppFastHack(task)
+            }
+            project.rootProject.allprojects { pro ->
+                if (pro != project) {
+                    pro.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
+                        task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
+                    }
+                    pro.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
+                        task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
+                    }
+                }
+
+            }
+
             if (!projectExtension.pluginEnable) {
                 return@projectsEvaluated
             }
             val androidExtension = project.extensions.getByName("android") as BaseAppModuleExtension
             androidExtension.applicationVariants.all { variant ->
-                if (!propertyFileConfig.existConfigFile()) {
-                    variant.assembleProvider.get().dependsOn(project.tasks.getByName("clean").apply {
-                        doLast {
-                            FastBuilderLogger.logLifecycle("清理任务执行完毕by:${variant.assembleProvider.get().name}")
-                        }
-                    })
-                }
+//                if (!propertyFileConfig.existConfigFile()) {
+//                    variant.assembleProvider.get().dependsOn(project.tasks.getByName("clean").apply {
+//                        doLast {
+//                            FastBuilderLogger.logLifecycle("清理任务执行完毕by:${variant.assembleProvider.get().name}")
+//                        }
+//                    })
+//                }
                 // 在assemble任务之后执行aar的构建任务
                 variant.assembleProvider.get().finalizedBy(this.aarBuilderTask)
             }
@@ -116,7 +140,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
             moduleProjectList = propertyFileConfig.prepareByConfig()
 
             // 开始替换依赖
-            dependencyReplaceHelper.replaceDependency()
+//            dependencyReplaceHelper.replaceDependency()
 
             val endTime = System.currentTimeMillis();
             FastBuilderLogger.logLifecycle("插件花費的配置時間${endTime - starTime}")
