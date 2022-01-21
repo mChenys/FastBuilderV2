@@ -103,7 +103,9 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
                 FastBuilderLogger.logLifecycle("检测任务不相关不启用替换逻辑")
                 return@projectsEvaluated
             }
-
+            project.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
+                task.hackCompilerIntermediary = AppFastCompileHack(task)
+            }
             project.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
                 task.hackCompilerIntermediary = AppFastHack(task)
             }
@@ -111,9 +113,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
             project.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
                 task.hackCompilerIntermediary = AppFastHack(task)
             }
-            project.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
-                task.hackCompilerIntermediary = AppFastCompileHack(task)
-            }
+
             project.rootProject.allprojects { pro ->
                 if (pro != project) {
                     pro.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
