@@ -18,7 +18,6 @@ import org.gradle.api.artifacts.Dependency
 import org.lizhi.tiya.extension.ModuleExtension
 import org.lizhi.tiya.plugin.AppHelper
 import org.lizhi.tiya.plugin.IPluginContext
-import java.io.File
 
 /**
  * 和module对应的工程
@@ -35,10 +34,6 @@ class ModuleProject(val moduleExtension: ModuleExtension, private val pluginCont
      */
     private var project: Project? = null
 
-    /**
-     * 缓存的aar文件的地址
-     */
-    private var aarFile: File? = null
 
     /**
      * 最後修改文件夾的時間
@@ -49,13 +44,6 @@ class ModuleProject(val moduleExtension: ModuleExtension, private val pluginCont
      * 对应替换的后的依赖声明
      */
     private var dependency: Dependency? = null
-
-
-    /**
-     * 这个工程依赖的其他module工程
-     */
-    var dependencyModuleProjectList: MutableSet<ModuleProject> = mutableSetOf()
-
 
     /**
      * 获取关联的project对象
@@ -68,16 +56,6 @@ class ModuleProject(val moduleExtension: ModuleExtension, private val pluginCont
         return this.project!!
     }
 
-    /**
-     * 获取缓存的aar文件地址
-     */
-    fun obtainCacheAARFile(): File {
-        if (this.aarFile == null) {
-            val extension = pluginContext.getProjectExtension()
-            aarFile = File(extension.moduleAarsDir, moduleExtension.aarName)
-        }
-        return aarFile!!
-    }
 
 
     /**
@@ -97,28 +75,7 @@ class ModuleProject(val moduleExtension: ModuleExtension, private val pluginCont
     fun obtainName(): String = moduleExtension.name
 
 
-    /**
-     * 获取替换的aar依赖声明
-     */
-    fun obtainAARDependency(): Dependency {
-        if (this.dependency == null) {
-            val obtainProject = obtainProject()
-            this.dependency = obtainProject.dependencies.create(
-                mapOf(
-                    "name" to obtainCacheAARFile().name.replace(
-                        ".aar",
-                        ""
-                    ), "ext" to "aar"
-                )
-            )
-        }
-        return dependency as Dependency
-    }
 
-    /**
-     * 当前依赖被引用
-     */
-    var flagHasOut: Boolean = false
 
 
 }

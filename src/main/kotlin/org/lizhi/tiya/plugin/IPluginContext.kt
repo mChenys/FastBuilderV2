@@ -15,10 +15,8 @@ package org.lizhi.tiya.plugin
 
 import org.gradle.api.Project
 import org.lizhi.tiya.config.PropertyFileConfig
-import org.lizhi.tiya.dependency.DependencyReplaceHelper
 import org.lizhi.tiya.extension.ProjectExtension
 import org.lizhi.tiya.project.ModuleProject
-import org.lizhi.tiya.task.AARBuilderTask
 
 /**
  * 插件上下文
@@ -35,15 +33,6 @@ interface IPluginContext {
      */
     fun getProjectExtension(): ProjectExtension
 
-    /**
-     * 获取依赖帮助类
-     */
-    fun getDependencyReplaceHelper(): DependencyReplaceHelper
-
-    /**
-     * 获取aar构建任务
-     */
-    fun getAARBuilderTask(): AARBuilderTask
 
     /**
      * 获取插件所依赖的工程
@@ -58,5 +47,5 @@ interface IPluginContext {
     /**
      * 获取模块的工程集合
      */
-    fun getModuleProjectList():List<ModuleProject>
+    fun getModuleProjectList(): List<ModuleProject>
 }

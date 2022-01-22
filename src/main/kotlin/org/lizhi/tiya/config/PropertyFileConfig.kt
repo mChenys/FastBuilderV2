@@ -13,6 +13,7 @@
 
 package org.lizhi.tiya.config
 
+import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.internal.impldep.aQute.bnd.annotation.component.Modified
 import org.jetbrains.kotlin.gradle.internal.KaptGenerateStubsTask
@@ -116,45 +117,27 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
             it.convertModuleProject(pluginContext)
         }
         //启用了kapt优化
-        val countDownLatch = if (pluginContext.getProjectExtension().kaptOptimization) {
-            CountDownLatch(moduleProjectList.size + 1)
-        } else {
-            CountDownLatch(moduleProjectList.size)
-        }
+        val countDownLatch = CountDownLatch(moduleProjectList.size)
+
+        var hasErr = false
         // 开启多线程处理
         for (moduleProject in moduleProjectList) {
             thread {
-                moduleProject.cacheValid = isCacheValid(moduleProject)
-                countDownLatch.countDown()
-            }
-        }
-        if (pluginContext.getProjectExtension().kaptOptimization) {
-            thread {
-                //禁用kapt
-                if (pluginContext.getPropertyConfig().appIsCacheValid()) {
-
-                    val applyProject = pluginContext.getApplyProject()
-                    val kaptGenerateStubsTask = applyProject.tasks.withType(KaptGenerateStubsTask::class.java)
-                    val KaptWithKotlincTask = applyProject.tasks.withType(KaptWithKotlincTask::class.java)
-                    for (kaptGenerateStubsTask in kaptGenerateStubsTask) {
-                        kaptGenerateStubsTask.onlyIf {
-                            false
-                        }
-                    }
-                    for (kaptWithKotlincTask in KaptWithKotlincTask) {
-                        kaptWithKotlincTask.onlyIf {
-                            false
-                        }
-                    }
-                    FastBuilderLogger.logLifecycle("App 模块Kapt 缓存有效 ${kaptGenerateStubsTask.size} ${KaptWithKotlincTask.size}")
-                } else {
-                    FastBuilderLogger.logLifecycle("App 模块Kapt 缓存无效")
+                try {
+                    moduleProject.cacheValid = isCacheValid(moduleProject)
+                } catch (e: Exception) {
+                    hasErr = true
+                    e.printStackTrace()
+                } finally {
+                    countDownLatch.countDown()
                 }
-                countDownLatch.countDown()
             }
         }
 
         countDownLatch.await()
+        if (hasErr) {
+            throw GradleException("FastBuilderPlugin插件在初始化模块进程出错，请确保配置的模块存在")
+        }
 
         return moduleProjectList
     }

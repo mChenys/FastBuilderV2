@@ -33,10 +33,7 @@ open class ProjectExtension(private val project: Project) {
      */
     var logEnable: Boolean = false
 
-    /**
-     * kapt优化选项 如果app本模块没有改变那么跳过kapt
-     */
-    var kaptOptimization: Boolean = false
+
 
     /***
      * 如果当前的task任务名称满足就启动依赖替换,例如task名字是:app:assembleDebug
