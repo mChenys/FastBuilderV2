@@ -128,6 +128,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
                     this.getPropertyConfig().updateModify(moduleProject)
                 }
                 this.getPropertyConfig().saveAppLastModified()
+                this.getPropertyConfig().saveConfig()
             }
         }
     }
