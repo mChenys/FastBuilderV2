@@ -142,10 +142,7 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
         return moduleProjectList
     }
 
-    fun saveAppLastModified() {
-        val propertyInfo = getPropertyInfo()
-        propertyInfo[pluginContext.getApplyProject().name.replace(":", "")] = "$appLastModified"
-    }
+
 
     fun obtainAppLastModifiedFromConfig(): Long {
         val propertyInfo = getPropertyInfo()
@@ -155,15 +152,5 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
 
     var appLastModified = 0L
 
-    /**
-     * app的缓存是否有效
-     */
-    fun appIsCacheValid(): Boolean {
-        if (appLastModified == 0L) {
-            appLastModified = AppHelper.obtainLastModified(pluginContext.getApplyProject())
-        }
 
-        return obtainAppLastModifiedFromConfig() == appLastModified
-
-    }
 }
