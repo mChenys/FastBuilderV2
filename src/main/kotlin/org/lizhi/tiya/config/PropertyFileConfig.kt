@@ -143,14 +143,29 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
     }
 
 
+    var appLastModified = 0L
+
+    fun saveAppLastModified() {
+        val propertyInfo = getPropertyInfo()
+        propertyInfo[pluginContext.getApplyProject().name.replace(":", "")] = "$appLastModified"
+    }
 
     fun obtainAppLastModifiedFromConfig(): Long {
         val propertyInfo = getPropertyInfo()
         val name = pluginContext.getApplyProject().name.replace(":", "")
         return propertyInfo.getProperty(name, "0").toLong()
     }
+    /**
+     * app的缓存是否有效
+     */
+    fun appIsCacheValid(): Boolean {
+        if (appLastModified == 0L) {
+            appLastModified = AppHelper.obtainLastModified(pluginContext.getApplyProject())
+        }
 
-    var appLastModified = 0L
+        return obtainAppLastModifiedFromConfig() == appLastModified
+
+    }
 
 
 }

@@ -74,7 +74,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
             }
 
             handleHackApp(project)
-
+            handleSkipApp(project)
             handleOtherModuleCompile(project)
 
             skipOtherModule()
@@ -84,6 +84,26 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
             val endTime = System.currentTimeMillis();
             FastBuilderLogger.logLifecycle("插件花費的配置時間${endTime - starTime}")
         }
+    }
+
+    private fun handleSkipApp(project: Project) {
+
+        if (this.getPropertyConfig().appIsCacheValid()) {
+            FastBuilderLogger.logLifecycle("app 缓存有效")
+
+            project.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
+               task.onlyIf { false }
+            }
+            project.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
+                task.onlyIf { false }
+            }
+            project.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
+                task.onlyIf { false }
+            }
+        }else{
+            FastBuilderLogger.logLifecycle("app 缓存无效")
+        }
+
     }
 
     /**
@@ -127,6 +147,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
                 for (moduleProject in this.getModuleProjectList()) {
                     this.getPropertyConfig().updateModify(moduleProject)
                 }
+                this.getPropertyConfig().saveAppLastModified()
                 this.getPropertyConfig().saveConfig()
             }
         }

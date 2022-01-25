@@ -8,7 +8,7 @@ plugins {
 
 val artifactId="FastBuilder"
 val groupName = "io.github.tiyateam.fastbuilder"
-val artifactVersion = "2.0.3"
+val artifactVersion = "2.0.4"
 group = groupName
 version = artifactVersion
 
