@@ -110,3 +110,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
+# BUG
+1. 找到布局资源
+2. 再配合kotlin-synthetic改变view出错

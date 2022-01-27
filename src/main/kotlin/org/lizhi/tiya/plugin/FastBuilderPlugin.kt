@@ -129,8 +129,11 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
                 pro.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
                     task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
                 }
+                pro.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
+                    task.hackCompilerIntermediary = FastKaptCompilerIntermediary(task)
+                }
                 pro.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
-                    task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
+                    task.hackCompilerIntermediary = FastKaptCompilerIntermediary(task)
                 }
             }
         }

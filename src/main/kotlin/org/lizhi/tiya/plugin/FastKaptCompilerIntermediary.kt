@@ -20,7 +20,7 @@ import org.jetbrains.kotlin.gradle.tasks.HackCompilerIntermediary
 import org.lizhi.tiya.log.FastBuilderLogger
 import java.util.ArrayList
 
-class FastHackCompilerIntermediary constructor(task: Task) : HackCompilerIntermediary(task) {
+class FastKaptCompilerIntermediary constructor(task: Task) : HackCompilerIntermediary(task) {
     val modified = ArrayList<InputFileDetails>()
     val removed = ArrayList<InputFileDetails>()
     override fun changeIncrementalTaskInputs(input: IncrementalTaskInputs): IncrementalTaskInputs {
@@ -56,20 +56,25 @@ class FastHackCompilerIntermediary constructor(task: Task) : HackCompilerInterme
         moIterator: MutableIterator<InputFileDetails>,
         buildDir: String
     ) {
+        val isKapt = task.name.startsWith("kapt", true)
 
         while (moIterator.hasNext()) {
             val moFileDetails = moIterator.next()
             val moFile = moFileDetails.file
             val moPath = moFile.path
-            if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt") && !moPath.endsWith(".java")&&!moPath.endsWith(".xml")) {
+            if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
                 moIterator.remove()
             } else {
                 if (moPath.endsWith(".jar", true)) {
                     moIterator.remove()
                     continue
                 }
-
-                if (!moPath.endsWith(".kt") && !moPath.endsWith(".java")&& !moPath.endsWith(".xml")) {
+                //todo 这里应该根据内容来定义是否生产
+                if (isKapt && (moPath.endsWith(".kt") || moPath.endsWith(".java"))) {
+                    moIterator.remove()
+                    continue
+                }
+                if (!moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
                     moIterator.remove()
                     continue
                 }
