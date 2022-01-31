@@ -6,9 +6,9 @@ plugins {
     id("com.gradle.plugin-publish") version "0.16.0"
 }
 
-val artifactId="FastBuilder"
+val artifactId = "FastBuilder"
 val groupName = "io.github.tiyateam.fastbuilder"
-val artifactVersion = "2.0.7"
+val artifactVersion = "2.0.8"
 group = groupName
 version = artifactVersion
 
@@ -36,8 +36,7 @@ gradlePlugin {
             id = "io.github.tiyateam.fastHackPlugin"
             displayName = artifactId
             implementationClass = "org.lizhi.tiya.plugin.FastHackPlugin"
-            description = "Replace Android module dependency with AAR dependency at compile time."
-            implementationClass = "org.lizhi.tiya.plugin.FastBuilderPlugin"
+            description = "Replace JavaCompileCreationAction for custom increment"
 
         }
     }
@@ -47,7 +46,7 @@ dependencies {
     implementation(kotlin("stdlib"))
 //    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
 //    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
-    implementation ("org.javassist:javassist:3.28.0-GA")
+    implementation("org.javassist:javassist:3.28.0-GA")
 
     implementation("com.android.tools.build:gradle:3.6.0")
     implementation("org.jooq:joor-java-8:0.9.13")
