@@ -32,6 +32,10 @@ gradlePlugin {
             description = "Replace Android module dependency with AAR dependency at compile time."
             implementationClass = "org.lizhi.tiya.plugin.FastBuilderPlugin"
         }
+        create("FastHackPlugin") {
+            id = "io.github.tiyateam.fastHackPlugin"
+            implementationClass = "org.lizhi.tiya.plugin.FastHackPlugin"
+        }
     }
 }
 
@@ -39,6 +43,7 @@ dependencies {
     implementation(kotlin("stdlib"))
 //    testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.0")
 //    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+    implementation ("org.javassist:javassist:3.28.0-GA")
 
     implementation("com.android.tools.build:gradle:3.6.0")
     implementation("org.jooq:joor-java-8:0.9.13")

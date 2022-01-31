@@ -16,7 +16,7 @@ package org.lizhi.tiya.plugin
 import org.gradle.api.Task
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs
 import org.gradle.api.tasks.incremental.InputFileDetails
-import org.jetbrains.kotlin.gradle.tasks.HackCompilerIntermediary
+import org.lizhi.tiya.hack.HackCompilerIntermediary
 import org.lizhi.tiya.log.FastBuilderLogger
 import java.util.ArrayList
 

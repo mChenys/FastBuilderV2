@@ -19,10 +19,12 @@ import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.internal.KaptGenerateStubsTask
 import org.jetbrains.kotlin.gradle.internal.KaptWithKotlincTask
 import org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile
+import org.joor.Reflect
 import org.lizhi.tiya.config.PropertyFileConfig
 import org.lizhi.tiya.extension.ProjectExtension
 import org.lizhi.tiya.log.FastBuilderLogger
 import org.lizhi.tiya.project.ModuleProject
+
 
 /**
  * 插件入口
@@ -92,7 +94,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
             FastBuilderLogger.logLifecycle("app 缓存有效")
 
             project.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
-               task.onlyIf { false }
+                task.onlyIf { false }
             }
             project.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
                 task.onlyIf { false }
@@ -100,7 +102,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
             project.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
                 task.onlyIf { false }
             }
-        }else{
+        } else {
             FastBuilderLogger.logLifecycle("app 缓存无效")
         }
 
@@ -127,13 +129,13 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
         project.rootProject.allprojects { pro ->
             if (pro != project) {
                 pro.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
-                    task.hackCompilerIntermediary = FastHackCompilerIntermediary(task)
+                    Reflect.on(task).set(FastHackPlugin.INJECT_FIELD_NAME, FastHackCompilerIntermediary(task))
                 }
                 pro.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
-                    task.hackCompilerIntermediary = FastKaptCompilerIntermediary(task)
+                    Reflect.on(task).set(FastHackPlugin.INJECT_FIELD_NAME, FastKaptCompilerIntermediary(task))
                 }
                 pro.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
-                    task.hackCompilerIntermediary = FastKaptCompilerIntermediary(task)
+                    Reflect.on(task).set(FastHackPlugin.INJECT_FIELD_NAME, FastKaptCompilerIntermediary(task))
                 }
             }
         }
@@ -146,6 +148,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
         val androidExtension = project.extensions.getByName("android") as BaseAppModuleExtension
         androidExtension.applicationVariants.all { variant ->
             // 在assemble任务之后执行aar的构建任务
+
             variant.assembleProvider.get().doLast {
                 for (moduleProject in this.getModuleProjectList()) {
                     this.getPropertyConfig().updateModify(moduleProject)
@@ -164,20 +167,23 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
          * 处理app工程的编译
          */
         project.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
-            task.hackCompilerIntermediary = AppFastCompileHack(task)
+            Reflect.on(task).set(FastHackPlugin.INJECT_FIELD_NAME, AppFastCompileHack(task))
+
         }
         /**
          * 处理app工程的kapt->stub的生产
          */
         project.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
-            task.hackCompilerIntermediary = AppFastHack(task)
+            Reflect.on(task).set(FastHackPlugin.INJECT_FIELD_NAME, AppFastHack(task))
+
         }
 
         /**
          * 处理app工程的注解处理器
          */
         project.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
-            task.hackCompilerIntermediary = AppFastHack(task)
+            Reflect.on(task).set(FastHackPlugin.INJECT_FIELD_NAME, AppFastHack(task))
+
         }
     }
 
