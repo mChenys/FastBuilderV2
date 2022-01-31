@@ -22,125 +22,127 @@ import javassist.bytecode.annotation.Annotation
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
+data class InjectClass(val ctClass: CtClass, val methodName: String = "") {
+
+    fun injectFile() {
+        val addField = CtField.make(
+            "public org.lizhi.tiya.hack.HackCompilerIntermediary ${FastHackPlugin.INJECT_FIELD_NAME} =new org.lizhi.tiya.hack.HackCompilerIntermediary(this);",
+            ctClass
+        )
+        val annotationsAttribute = AnnotationsAttribute(ctClass.classFile.constPool, AnnotationsAttribute.visibleTag)
+        val annotation = Annotation("org.gradle.api.tasks.Internal", ctClass.classFile.constPool)
+        annotationsAttribute.addAnnotation(annotation)
+        addField.fieldInfo.addAttribute(annotationsAttribute)
+        ctClass.addField(addField)
+    }
+
+    fun injectMethod() {
+        val declaredMethod = ctClass.getDeclaredMethod(
+            methodName,
+            arrayOf<CtClass>(ClassPool.getDefault().get("org.gradle.api.tasks.incremental.IncrementalTaskInputs"))
+        )
+        declaredMethod.insertBefore(
+            "$1 = ${FastHackPlugin.INJECT_FIELD_NAME}.changeIncrementalTaskInputs(inputs);" + "if(${FastHackPlugin.INJECT_FIELD_NAME}.hackTaskAction($1)){return;}"
+        )
+    }
+
+    fun toCLass() {
+        ctClass.toClass()
+    }
+}
+
+
 /**
  * 提供了一个hack
  */
 class FastHackPlugin : Plugin<Project> {
     companion object {
         const val INJECT_FIELD_NAME: String = "hackField"
+        const val INJECT_INTERFACE_NAME: String = "org.lizhi.tiya.hack.IHackTaskFlag"
     }
 
+    private val cp: ClassPool = ClassPool.getDefault()
+
     override fun apply(project: Project) {
-        val cp = ClassPool.getDefault()
         cp.insertClassPath(ClassClassPath(this.javaClass))
         cp.importPackage("org.jetbrains.kotlin.gradle.tasks")
+        loadFlagClass()
+        handleJavaCompile()
+        handleKotlinCompile()
+    }
 
+    private fun loadFlagClass() {
+        val flagClass = cp.get(INJECT_INTERFACE_NAME)
+        val classLoader = this.javaClass.classLoader.parent
 
-//        val cavaCompile = cp.get("org.gradle.api.tasks.compile.JavaCompile")
-//        val toClass = cavaCompile.toClass()
-        println("")
-        println("插件的加载器 ${this.javaClass.classLoader} ${this.javaClass.classLoader.hashCode()}")
-//        println("插件的加载器22 ${toClass.classLoader} ${toClass.classLoader.hashCode()}")
-        println("")
-        val hackClassList = mutableListOf<CtClass>(
-//            cp.get("org.gradle.api.tasks.compile.JavaCompile"),
-            cp.get("org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile"),
-            cp.get("org.jetbrains.kotlin.gradle.internal.KaptWithKotlincTask")
+//        while (classLoader != null && classLoader.parent != null) {
+//
+//        }
+        if (!flagClass.isFrozen) {
+            flagClass.toClass(classLoader)
+        }
+    }
+
+    private fun handleKotlinCompile() {
+        mutableListOf(
+            InjectClass(cp.get("org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile"), "execute"),
+            InjectClass(cp.get("org.jetbrains.kotlin.gradle.internal.KaptWithKotlincTask"), "compile")
         )
-        //fun execute(inputs: IncrementalTaskInputs)
-        //fun compile(inputs: IncrementalTaskInputs)
-        val hackMethodList = listOf<String>(
-//             "compile",
-            "execute", "compile"
-        )
-
-        val hackClassIterator = hackClassList.iterator()
-        whileFlag@ while (hackClassIterator.hasNext()) {
-            val hackClass = hackClassIterator.next()
-            for (ctClass in hackClass.interfaces) {
-                if (ctClass.name == "org.lizhi.tiya.hack.IHackTaskFlag") {
-                    hackClassIterator.remove()
-                    continue@whileFlag
-                }
+            //过滤已经被注入的对象
+            .filter { !hasInjectFlag(it.ctClass) && !it.ctClass.isFrozen }
+            //属性和方法注入
+            .forEach { hackClass ->
+                hackClass.injectFile()
+                hackClass.injectMethod()
+                hackClass.toCLass()
             }
-            hackClass.addInterface(cp.get("org.lizhi.tiya.hack.IHackTaskFlag"))
+    }
+
+    private fun handleJavaCompile() {
+
+
+        val fitiClass = cp.get("org.lizhi.tiya.plugin.FastIncrementalTaskInputs")
+        if (!fitiClass.isFrozen && !hasInjectFlag(fitiClass)) {
+            injectFlagInterface(fitiClass)
+            fitiClass.toClass(this.javaClass.classLoader.parent)
         }
 
-        if (hackClassList.isEmpty()) {
-            return
+        val hjcClass = cp.get("org.lizhi.tiya.hack.HackJavaCompile")
+        if (!hjcClass.isFrozen && !hasInjectFlag(hjcClass)) {
+            injectFlagInterface(hjcClass)
+            hjcClass.toClass(this.javaClass.classLoader.parent)
         }
 
-
-        //属性注入
-        for (hackName in hackClassList) {
-            injectFile(hackName)
-        }
-        for (index in hackClassList.indices) {
-            val hackClass = hackClassList[index]
-            val hackMethod = hackMethodList[index]
-            val declaredMethod = hackClass.getDeclaredMethod(
-                hackMethod,
-                arrayOf<CtClass>(cp.get("org.gradle.api.tasks.incremental.IncrementalTaskInputs"))
-            )
-
-            declaredMethod.insertBefore(
-                "$1 = ${INJECT_FIELD_NAME}.changeIncrementalTaskInputs(inputs);" +
-                        "if(${INJECT_FIELD_NAME}.hackTaskAction($1)){return;}"
-            )
-
-        }
-
-        //属性注入
-        for (hackName in hackClassList) {
-            try {
-                hackName.toClass();
-                hackName.writeFile("/Users/fmy/IdeaProjects/FastBuilder/gradle/tes")
-
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+        val wrapperActionClass = cp.get("org.lizhi.tiya.hack.WrapperAction")
+        if (!wrapperActionClass.isFrozen && !hasInjectFlag(wrapperActionClass)) {
+            injectFlagInterface(wrapperActionClass)
+            wrapperActionClass.toClass(this.javaClass.classLoader.parent)
         }
 
         val jCCAClass = cp.get("com.android.build.gradle.tasks.JavaCompileCreationAction")
-
-
-        if (!jCCAClass.isFrozen) {
-
-
-            val fitiClass = cp.get("org.lizhi.tiya.plugin.FastIncrementalTaskInputs")
-            if (!fitiClass.isFrozen) {
-                fitiClass.toClass(this.javaClass.classLoader.parent)
-            }
-
-            val hjcClass = cp.get("org.lizhi.tiya.hack.HackJavaCompile")
-            if (!hjcClass.isFrozen) {
-                hjcClass.toClass(this.javaClass.classLoader.parent)
-            }
-            val wrapperActionClass = cp.get("org.lizhi.tiya.hack.WrapperAction")
-            if (!wrapperActionClass.isFrozen) {
-                wrapperActionClass.toClass(this.javaClass.classLoader.parent)
-            }
-
+        if (!jCCAClass.isFrozen && !hasInjectFlag(jCCAClass)) {
             val declaredMethod = jCCAClass.getDeclaredMethod("getType")
             declaredMethod.setBody(" return org.lizhi.tiya.hack.HackJavaCompile.class;")
             jCCAClass.toClass(this.javaClass.classLoader.parent)
             jCCAClass.writeFile("/Users/fmy/IdeaProjects/FastBuilder/gradle/tes")
-
         }
     }
 
-    fun injectFile(injectClass: CtClass) {
-        val addField = CtField.make(
-            "public org.lizhi.tiya.hack.HackCompilerIntermediary $INJECT_FIELD_NAME =new org.lizhi.tiya.hack.HackCompilerIntermediary(this);",
-            injectClass
-        )
-        val annotationsAttribute =
-            AnnotationsAttribute(injectClass.classFile.constPool, AnnotationsAttribute.visibleTag)
-        val annotation = Annotation("org.gradle.api.tasks.Internal", injectClass.classFile.constPool)
-        annotationsAttribute.addAnnotation(annotation)
-        addField.fieldInfo.addAttribute(annotationsAttribute)
-        injectClass.addField(addField)
+    /**
+     * 添加标志接口
+     */
+    private fun injectFlagInterface(ctClass: CtClass) {
+        ctClass.addInterface(ClassPool.getDefault().get(INJECT_INTERFACE_NAME))
+    }
+
+    /**
+     * 是否存在注入的接口
+     */
+    private fun hasInjectFlag(ctClass: CtClass): Boolean {
+        val filter = ctClass.interfaces.toList().filter {
+            it.name.equals(INJECT_INTERFACE_NAME)
+        }
+        return filter.isNotEmpty()
     }
 
 
