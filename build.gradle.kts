@@ -8,7 +8,7 @@ plugins {
 
 val artifactId="FastBuilder"
 val groupName = "io.github.tiyateam.fastbuilder"
-val artifactVersion = "2.0.6"
+val artifactVersion = "2.0.7"
 group = groupName
 version = artifactVersion
 
@@ -34,7 +34,11 @@ gradlePlugin {
         }
         create("FastHackPlugin") {
             id = "io.github.tiyateam.fastHackPlugin"
+            displayName = artifactId
             implementationClass = "org.lizhi.tiya.plugin.FastHackPlugin"
+            description = "Replace Android module dependency with AAR dependency at compile time."
+            implementationClass = "org.lizhi.tiya.plugin.FastBuilderPlugin"
+
         }
     }
 }
