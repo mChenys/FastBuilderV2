@@ -13,5 +13,8 @@
 
 package org.lizhi.tiya.hack
 
+/**
+ * 用于标记Hack操作相关class加载成功的标记
+ */
 interface IHackTaskFlag {
 }

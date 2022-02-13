@@ -77,7 +77,7 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
         val currentModify = project.obtainLastModified()
         val lastModify = propertyInfo.getProperty(project.moduleExtension.aarName)
         if (currentModify.toString() == lastModify) {
-            FastBuilderLogger.logLifecycle("${project.moduleExtension.name}     found cache aar.")
+            FastBuilderLogger.logLifecycle("${project.moduleExtension.name} found cache aar.")
             return true
         }
         FastBuilderLogger.logLifecycle("${project.moduleExtension.name} aar cache invalid.")
@@ -97,6 +97,8 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
      * 保存配置
      */
     fun saveConfig() {
+        // 先保存app的缓存
+        saveAppLastModified()
         val propertyInfo = getPropertyInfo()
         val moduleAarsDir = pluginContext.getProjectExtension().moduleAarsDir
         val configFile = File(moduleAarsDir, fileName)
@@ -153,7 +155,7 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
     /**
      * app的缓存是否有效
      */
-    fun appIsCacheValid(): Boolean {
+    fun isAppCacheValid(): Boolean {
         if (appLastModified == 0L) {
             appLastModified = AppHelper.obtainLastModified(pluginContext.getApplyProject())
         }

@@ -13,14 +13,11 @@
 
 package org.lizhi.tiya.hack
 
-import com.android.build.gradle.tasks.JavaCompileCreationAction
 import org.gradle.api.Action
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs
 import org.gradle.api.tasks.incremental.InputFileDetails
-import org.lizhi.tiya.log.FastBuilderLogger
-import org.lizhi.tiya.plugin.FastIncrementalTaskInputs
 import java.util.ArrayList
 
 open class WrapperAction(val list: ArrayList<InputFileDetails>) : Action<InputFileDetails> {
@@ -57,7 +54,13 @@ open class HackJavaCompile : JavaCompile() {
             println("removed ${modified.map { it.file }.map { it.path }}")
             println("------------------------------------------------------------------------")
 
-            super.compile(FastIncrementalTaskInputs(input.isIncremental, modified, removed))
+            super.compile(
+                FastIncrementalTaskInputs(
+                    input.isIncremental,
+                    modified,
+                    removed
+                )
+            )
 
         }
 
@@ -73,7 +76,8 @@ open class HackJavaCompile : JavaCompile() {
             val moFileDetails = moIterator.next()
             val moFile = moFileDetails.file
             val moPath = moFile.path
-            if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
+            if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt")
+                && !moPath.endsWith(".java")) {
                 moIterator.remove()
             } else {
                 if (!moPath.endsWith(".kt") && !moPath.endsWith(".java")) {

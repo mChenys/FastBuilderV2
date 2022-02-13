@@ -11,7 +11,7 @@
  * limitations under the License.
  */
 
-package org.lizhi.tiya.plugin
+package org.lizhi.tiya.hack
 
 import org.gradle.api.Action
 import org.gradle.api.tasks.incremental.IncrementalTaskInputs
