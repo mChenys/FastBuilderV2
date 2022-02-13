@@ -33,7 +33,7 @@ data class InjectClass(val ctClass: CtClass, val methodName: String = "") {
     fun injectFile() {
         val addField = CtField.make(
             "public org.lizhi.tiya.hack.HackCompilerIntermediary ${FastHackPlugin.INJECT_FIELD_NAME} " +
-                    "=new org.lizhi.tiya.hack.Å(this);",
+                    "=new org.lizhi.tiya.hack.HackCompilerIntermediary(this);",
             ctClass
         )
         val annotationsAttribute = AnnotationsAttribute(ctClass.classFile.constPool, AnnotationsAttribute.visibleTag)
