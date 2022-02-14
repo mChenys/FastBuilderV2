@@ -19,6 +19,7 @@ import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.internal.KaptGenerateStubsTask
 import org.jetbrains.kotlin.gradle.internal.KaptWithKotlincTask
 import org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile
+import org.jetbrains.kotlin.gradle.utils.addExtendsFromRelation
 import org.joor.Reflect
 import org.lizhi.tiya.config.PropertyFileConfig
 import org.lizhi.tiya.extension.ProjectExtension
@@ -60,16 +61,16 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
         this.propertyFileConfig = PropertyFileConfig(this)
 
         // 全局配置完成后执行
-        project.gradle.projectsEvaluated {
+        project.afterEvaluate  {
             if (!projectExtension.pluginEnable) {
-                return@projectsEvaluated
+                return@afterEvaluate
             }
             val starTime = System.currentTimeMillis();
             //赋值日志是否启用
             FastBuilderLogger.enableLogging = projectExtension.logEnable
 
             if (currentTaskIsCompile()) {
-                return@projectsEvaluated
+                return@afterEvaluate
             }
             // 处理app编译相关的task hack
             handleHackAppTask(project)
