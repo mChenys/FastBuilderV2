@@ -54,7 +54,7 @@ moduleArchive {
     //是否开启日志
     logEnable = true
     //是否启用
-    pluginEnable = !QA_JENKINS_BUILD.toBoolean()&& FASTBUILDER_ENABLE.toBoolean()
+    pluginEnable = true
     //哪些模块参与优化
     subModuleConfig {
         register(":image-picker") {
