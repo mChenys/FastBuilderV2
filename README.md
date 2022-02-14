@@ -49,7 +49,73 @@ apply plugin: "io.github.tiyateam.fastHackPlugin"
 
 ```groovy
 apply plugin: "io.github.tiyateam.fastbuilder"
+//进行相关配置
+moduleArchive {
+    //是否开启日志
+    logEnable = true
+    //是否启用
+    pluginEnable = !QA_JENKINS_BUILD.toBoolean()&& FASTBUILDER_ENABLE.toBoolean()
+    //哪些模块参与优化
+    subModuleConfig {
+        register(":image-picker") {
+        }
+        register(":floatwindow") {
+        }
+        register(":common") {
+        }
+        register(":live") {
+        }
+        register(":login_tiya") {
+        }
+        register(":pay-tiya") {
+        }
+        register(":pair") {
+        }
+        register(":pay-tiya-google") {
+        }
+        register(":player") {
+        }
+        register(":pushpermission") {
+        }
+        register(":record") {
+        }
+        register(":share-tiya") {
+        }
+        register(":ucrop") {
+        }
+        register(":videoprocessor") {
+        }
+        register(":live-tiya-rtc") {
+        }
+        register(":im") {
+        }
+        register(":audio_mixer") {
+        }
+        register(":analysis-tiya") {
+        }
+        register(":agent") {
+        }
+        register(":banner") {
+        }
+        register(":ImagePreview") {
+        }
+        register(":indexablerecyclerview") {
+        }
+        register(":cardstackview") {
+        }
+        register(":user") {
+        }
+        register(":base") {
+        }
+        register(":xhook_commom") {
+        }
+        register(":pthread_hook") {
+        }
 
+
+
+    }
+}
 ```
 
 # FAQ
