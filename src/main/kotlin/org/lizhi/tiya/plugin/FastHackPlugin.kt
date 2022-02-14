@@ -22,11 +22,18 @@ import javassist.bytecode.annotation.Annotation
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
+/**
+ * 用于注入HackCompilerIntermediary类字段和hack AbstractKotlinCompile和KaptWithKotlincTask的task方法执行
+ */
 data class InjectClass(val ctClass: CtClass, val methodName: String = "") {
 
+    /**
+     * 注入HackCompilerIntermediary字段到目标类
+     */
     fun injectFile() {
         val addField = CtField.make(
-            "public org.lizhi.tiya.hack.HackCompilerIntermediary ${FastHackPlugin.INJECT_FIELD_NAME} =new org.lizhi.tiya.hack.HackCompilerIntermediary(this);",
+            "public org.lizhi.tiya.hack.HackCompilerIntermediary ${FastHackPlugin.INJECT_FIELD_NAME} " +
+                    "=new org.lizhi.tiya.hack.HackCompilerIntermediary(this);",
             ctClass
         )
         val annotationsAttribute = AnnotationsAttribute(ctClass.classFile.constPool, AnnotationsAttribute.visibleTag)
@@ -36,13 +43,18 @@ data class InjectClass(val ctClass: CtClass, val methodName: String = "") {
         ctClass.addField(addField)
     }
 
+    /**
+     * hack目标task的action方法
+     */
     fun injectMethod() {
         val declaredMethod = ctClass.getDeclaredMethod(
             methodName,
             arrayOf<CtClass>(ClassPool.getDefault().get("org.gradle.api.tasks.incremental.IncrementalTaskInputs"))
         )
+        // 在目标task方法执行前先执行HackCompilerIntermediary的changeIncrementalTaskInputs方法
         declaredMethod.insertBefore(
-            "$1 = ${FastHackPlugin.INJECT_FIELD_NAME}.changeIncrementalTaskInputs(inputs);" + "if(${FastHackPlugin.INJECT_FIELD_NAME}.hackTaskAction($1)){return;}"
+            "$1 = ${FastHackPlugin.INJECT_FIELD_NAME}.changeIncrementalTaskInputs(inputs);"
+                    + "if(${FastHackPlugin.INJECT_FIELD_NAME}.hackTaskAction($1)){return;}"
         )
     }
 
@@ -57,7 +69,10 @@ data class InjectClass(val ctClass: CtClass, val methodName: String = "") {
  */
 class FastHackPlugin : Plugin<Project> {
     companion object {
+        // 用于注入HackCompilerIntermediary类的字段名
         const val INJECT_FIELD_NAME: String = "hackField"
+
+        // 用于标记Hack操作相关class加载成功的标记类全名
         const val INJECT_INTERFACE_NAME: String = "org.lizhi.tiya.hack.IHackTaskFlag"
     }
 
@@ -71,26 +86,28 @@ class FastHackPlugin : Plugin<Project> {
         handleKotlinCompile()
     }
 
+    /**
+     * 提前加载标记接口类
+     */
     private fun loadFlagClass() {
         val flagClass = cp.get(INJECT_INTERFACE_NAME)
         val classLoader = this.javaClass.classLoader.parent
-
-//        while (classLoader != null && classLoader.parent != null) {
-//
-//        }
         if (!flagClass.isFrozen) {
-            flagClass.toClass(classLoader)
+            flagClass.toClass(classLoader) // 转成java class目的是啥
         }
     }
 
+    /**
+     * 对AbstractKotlinCompile和KaptWithKotlincTask进行字节码操作
+     */
     private fun handleKotlinCompile() {
         mutableListOf(
             InjectClass(cp.get("org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile"), "execute"),
             InjectClass(cp.get("org.jetbrains.kotlin.gradle.internal.KaptWithKotlincTask"), "compile")
         )
-            //过滤已经被注入的对象
+            // 过滤已经被注入的对象
             .filter { !hasInjectFlag(it.ctClass) && !it.ctClass.isFrozen }
-            //属性和方法注入
+            // 属性和方法注入
             .forEach { hackClass ->
                 hackClass.injectFile()
                 hackClass.injectMethod()
@@ -98,24 +115,25 @@ class FastHackPlugin : Plugin<Project> {
             }
     }
 
+    /**
+     * 对JavaCompileCreationAction的getType方法进行hack操作，返回我们的HackJavaCompile类
+     */
     private fun handleJavaCompile() {
-
-
-        val fitiClass = cp.get("org.lizhi.tiya.plugin.FastIncrementalTaskInputs")
+        val fitiClass = cp.get("org.lizhi.tiya.hack.FastIncrementalTaskInputs")
         if (!fitiClass.isFrozen && !hasInjectFlag(fitiClass)) {
-            injectFlagInterface(fitiClass)
+            injectFlagInterface(fitiClass) //?? FastIncrementalTaskInputs为何不直接在源码添加IHackTaskFlag接口
             fitiClass.toClass(this.javaClass.classLoader.parent)
         }
 
         val hjcClass = cp.get("org.lizhi.tiya.hack.HackJavaCompile")
         if (!hjcClass.isFrozen && !hasInjectFlag(hjcClass)) {
-            injectFlagInterface(hjcClass)
+            injectFlagInterface(hjcClass)//?? HackJavaCompile为何不直接在源码添加IHackTaskFlag接口
             hjcClass.toClass(this.javaClass.classLoader.parent)
         }
 
         val wrapperActionClass = cp.get("org.lizhi.tiya.hack.WrapperAction")
         if (!wrapperActionClass.isFrozen && !hasInjectFlag(wrapperActionClass)) {
-            injectFlagInterface(wrapperActionClass)
+            injectFlagInterface(wrapperActionClass)//?? WrapperAction为何不直接在源码添加IHackTaskFlag接口
             wrapperActionClass.toClass(this.javaClass.classLoader.parent)
         }
 
