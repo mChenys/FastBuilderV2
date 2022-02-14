@@ -60,16 +60,16 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
         this.propertyFileConfig = PropertyFileConfig(this)
 
         // 全局配置完成后执行
-        project.gradle.projectsEvaluated {
+        project.afterEvaluate {
             if (!projectExtension.pluginEnable) {
-                return@projectsEvaluated
+                return@afterEvaluate
             }
             val starTime = System.currentTimeMillis();
             //赋值日志是否启用
             FastBuilderLogger.enableLogging = projectExtension.logEnable
 
             if (currentTaskIsCompile()) {
-                return@projectsEvaluated
+                return@afterEvaluate
             }
             // 处理app编译相关的task hack
             handleHackAppTask(project)
