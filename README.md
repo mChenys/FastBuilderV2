@@ -8,69 +8,28 @@
 # 编译时间对比
 集成插件前:
 
-![snOLyFO3cj](https://user-images.githubusercontent.com/19259572/148940591-4c5c9ef7-88da-43c4-a4bd-d7264c47ff52.png)
+![image](https://user-images.githubusercontent.com/22413240/153822101-c7933143-5c7d-4a93-9317-e5a294da4e2f.png)
 
 集成插件后,且存在aar:
 
-![KMpHUGiW6T](https://user-images.githubusercontent.com/19259572/148940640-4e27476b-a099-43db-89d4-d825ee8d3341.png)
+![image](https://user-images.githubusercontent.com/22413240/153822135-ed9f550c-49ed-44c6-802b-db191042cf34.png)
 
 
 # 插件原理
-在gradle全局配置完成后设置监听，当执行项目的assemble任务后，会触发模块工程aar的生成和拷贝操作，并记录模块工程的最后修改时间，当下次执行assemble任务时会判断模块工程是否修改过（对比最后修改时间）来决定是否采用aar包进行依赖，如果模块工程没有改动，那么会修改工程的源码依赖，替换为aar包的依赖，并且将该工程下的所有依赖向上传递给对其有依赖的模块工程，这个过程是一个递归的操作，假设App工程依赖user模块，user模块依赖common模块，common模块依赖base模块，如果user和base变成了aar包方式继承，其中common工程有代码变动，那么需要将user模块gradle文件内配置的所有依赖向上传递给App工程，同时还需要将base模块的依赖向上传递给common模块。
 
-递归调用的过程是：
+针对业务构建自定义增量条件
 
-App--》user--》common--》base
+[Android 编译优化探索](https://fanmingyi.blog.csdn.net/article/details/122638149)
 
-依赖回传的过程是：
-
-base--》common--》user--》App
-
-# 类图
-![FastBuilder类图](https://user-images.githubusercontent.com/19259572/148940455-241585ad-8fb9-4e2b-8217-37efd8198e6f.png)
+[Android 编译优化探索2 Hack字节码](https://fanmingyi.blog.csdn.net/article/details/122760183)
 
 
 
 # 使用指南
-在您的app的build.gradle添加如下配置
-```groovy
-//启用插件
-plugins {
-  id "io.github.tiyateam.fastbuilder" version "${LastedVersion}"
-}
-//插件配置
-moduleArchive {
-    // 可选参数.是否打印log 默认为false
-    logEnable = true
-    // 可选参数.是否启用插件 默认为false
-    pluginEnable = true
-    // 可选参数.存储插件临时配置目录,不设置默认会在根工程的build/.fast_builder_module_aar下
-    moduleAarsDir = project.rootProject.file("libs")
-    // 可选参数.存储第三方aar的目录,不设置默认会在根工程的build/.fast_builder_thirdParty_aar下
-    thirdPartyAarsDir =  project.rootProject.file("libs")
-    // 可选参数.如果配置了那么只会由该任务触发执行,不配置的话,默认会检测是否包含apply的工程名字
-    detectLauncherRegex = ":app:assembleDebug"
-    // 下面配置哪些模块可以被编译成aar缓存
-    subModuleConfig {
-        // image-picker是一个module工程，具体视你项目而定,配置后会在编译时替换为aar依赖,并且会在您修改这个模块后会自动进行构建
-        register(":image-picker") {
-            // 可选参数.是否使用debug版本
-            useDebug = true
-            // 可选参数.是否启用这个模块配置 
-            enable = true
-            // 可选参数. 缓存的aar命中,不选的话默认命名格式为: _${module name}.aar
-            aarName = "image-picker-debug.aar"
-            // 可选参数.构建变体 如没有可不写
-            flavorName = "tiya"
-        }
-        // 另一个module模块，其最简约配置
-        register(":floatwindow") {
-      
-        }
-    }
-}
-```
-旧版本启用
+
+- (1)在您的根目录的下`build.gradle`启用插件
+
+
 ```groovy
 buildscript {
   repositories {
@@ -79,12 +38,26 @@ buildscript {
     }
   }
   dependencies {
-    classpath "io.github.tiyateam.fastbuilder:FastBuilder:${LastedVersion}"
+    classpath "io.github.tiyateam.fastbuilder:FastBuilder:2.0.12"
   }
 }
-//在某个模块开启
-apply plugin: "io.github.tiyateam.fastbuilder"
+
+apply plugin: "io.github.tiyateam.fastHackPlugin"
 ```
+
+- (2)在您的`App`工程下的`build.gradle`启用另一个插件
+
+```groovy
+apply plugin: "io.github.tiyateam.fastbuilder"
+
+```
+
+# FAQ
+1. 编译异常
+![image](https://user-images.githubusercontent.com/22413240/153822476-fed811f2-e396-4ef5-8875-3fd85ce7dfd0.png)
+ 
+执行`./gradlew --stop`即可。此命令作用为杀死守护进程，因为此刻守护进程已经加载了目标类，导致插件无法加载相同限定名的hook类
+
 
 # 谁在使用
 
