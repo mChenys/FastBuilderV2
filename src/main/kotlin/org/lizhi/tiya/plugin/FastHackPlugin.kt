@@ -121,19 +121,19 @@ class FastHackPlugin : Plugin<Project> {
     private fun handleJavaCompile() {
         val fitiClass = cp.get("org.lizhi.tiya.hack.FastIncrementalTaskInputs")
         if (!fitiClass.isFrozen && !hasInjectFlag(fitiClass)) {
-            injectFlagInterface(fitiClass) //?? FastIncrementalTaskInputs为何不直接在源码添加IHackTaskFlag接口
+            injectFlagInterface(fitiClass)
             fitiClass.toClass(this.javaClass.classLoader.parent)
         }
 
         val hjcClass = cp.get("org.lizhi.tiya.hack.HackJavaCompile")
         if (!hjcClass.isFrozen && !hasInjectFlag(hjcClass)) {
-            injectFlagInterface(hjcClass)//?? HackJavaCompile为何不直接在源码添加IHackTaskFlag接口
+            injectFlagInterface(hjcClass)
             hjcClass.toClass(this.javaClass.classLoader.parent)
         }
 
         val wrapperActionClass = cp.get("org.lizhi.tiya.hack.WrapperAction")
         if (!wrapperActionClass.isFrozen && !hasInjectFlag(wrapperActionClass)) {
-            injectFlagInterface(wrapperActionClass)//?? WrapperAction为何不直接在源码添加IHackTaskFlag接口
+            injectFlagInterface(wrapperActionClass)
             wrapperActionClass.toClass(this.javaClass.classLoader.parent)
         }
 
@@ -142,7 +142,6 @@ class FastHackPlugin : Plugin<Project> {
             val declaredMethod = jCCAClass.getDeclaredMethod("getType")
             declaredMethod.setBody(" return org.lizhi.tiya.hack.HackJavaCompile.class;")
             jCCAClass.toClass(this.javaClass.classLoader.parent)
-            jCCAClass.writeFile("/Users/fmy/IdeaProjects/FastBuilder/gradle/tes")
         }
     }
 
