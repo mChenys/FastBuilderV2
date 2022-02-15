@@ -13,14 +13,12 @@
 
 package org.lizhi.tiya.plugin
 
-import javassist.ClassClassPath
-import javassist.ClassPool
-import javassist.CtClass
-import javassist.CtField
+import javassist.*
 import javassist.bytecode.AnnotationsAttribute
 import javassist.bytecode.annotation.Annotation
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.lizhi.tiya.fileutil.PluginFileHelper
 
 /**
  * 用于注入HackCompilerIntermediary类字段和hack AbstractKotlinCompile和KaptWithKotlincTask的task方法执行
@@ -80,6 +78,7 @@ class FastHackPlugin : Plugin<Project> {
 
     override fun apply(project: Project) {
         cp.insertClassPath(ClassClassPath(this.javaClass))
+        cp.insertClassPath(LoaderClassPath(this.javaClass.classLoader.parent))
         cp.importPackage("org.jetbrains.kotlin.gradle.tasks")
         loadFlagClass()
         handleJavaCompile()
@@ -93,7 +92,10 @@ class FastHackPlugin : Plugin<Project> {
         val flagClass = cp.get(INJECT_INTERFACE_NAME)
         val classLoader = this.javaClass.classLoader.parent
         if (!flagClass.isFrozen) {
-            flagClass.toClass(classLoader) // 转成java class目的是啥
+            try {
+                flagClass.toClass(classLoader) // 转成java class目的是啥
+            } catch (e: Exception) {
+            }
         }
     }
 

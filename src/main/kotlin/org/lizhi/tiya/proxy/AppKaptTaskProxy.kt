@@ -23,6 +23,7 @@ import org.lizhi.tiya.hack.HackCompilerIntermediary
  */
 class AppKaptTaskProxy constructor(task: Task) : HackCompilerIntermediary(task) {
 
+
     override fun filterFile(
         moIterator: MutableIterator<InputFileDetails>,
         buildDir: String

@@ -23,6 +23,8 @@ import org.lizhi.tiya.hack.HackCompilerIntermediary
  */
 class ModuleKCompilerTaskProxy constructor(task: Task) : HackCompilerIntermediary(task) {
 
+
+
     override fun hackTaskAction(input: IncrementalTaskInputs): Boolean {
         return task.name.startsWith("kapt", true) && input.isIncremental
                 && removed.isEmpty() && modified.isEmpty()

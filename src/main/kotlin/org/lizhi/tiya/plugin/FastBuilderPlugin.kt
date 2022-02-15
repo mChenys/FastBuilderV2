@@ -21,7 +21,7 @@ import org.jetbrains.kotlin.gradle.internal.KaptWithKotlincTask
 import org.jetbrains.kotlin.gradle.tasks.AbstractKotlinCompile
 import org.joor.Reflect
 import org.lizhi.tiya.config.PropertyFileConfig
-import org.lizhi.tiya.extension.ProjectExtension
+import org.lizhi.tiya.fileutil.PluginFileHelper
 import org.lizhi.tiya.log.FastBuilderLogger
 import org.lizhi.tiya.project.ModuleProject
 import org.lizhi.tiya.proxy.AppKCompileTaskProxy
@@ -38,8 +38,6 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
     // apply的工程
     private lateinit var project: Project
 
-    // 工程的配置项
-    private lateinit var projectExtension: ProjectExtension
 
     // 配置文件
     private lateinit var propertyFileConfig: PropertyFileConfig
@@ -50,40 +48,57 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
     override fun apply(project: Project) {
         this.project = project
 
-        // 注册Project的配置项
-        this.projectExtension = project.extensions.create<ProjectExtension>(
-            "moduleArchive",
-            ProjectExtension::class.java,
-            project
-        )
+        PluginFileHelper.initHelper(project)
+
         // 初始化配置文件
         this.propertyFileConfig = PropertyFileConfig(this)
 
-        // 全局配置完成后执行
-        project.afterEvaluate {
-            if (!projectExtension.pluginEnable) {
-                return@afterEvaluate
-            }
-            val starTime = System.currentTimeMillis();
-            //赋值日志是否启用
-            FastBuilderLogger.enableLogging = projectExtension.logEnable
+        val configBean = PluginFileHelper.readConfig(project)
 
-            if (currentTaskIsCompile()) {
-                return@afterEvaluate
-            }
-            // 处理app编译相关的task hack
-            handleHackAppTask(project)
-            // 跳过app的kapt相关的task（仅在缓存有效时跳过）
-            handleSkipAppKaptTask(project)
-            // 处理其他模块编译相关的task hack
-            handleOtherModuleCompile(project)
-            // 跳过其他模块的task（仅在缓存有效时跳过）
-            handleSkipOtherModuleTask()
-            // 保存配置
-            handleConfigSave(project)
-            val endTime = System.currentTimeMillis();
-            FastBuilderLogger.logLifecycle("插件花費的配置時間${endTime - starTime}")
+
+        // 获取有效的启动任务,若没有配置,则采主工程命名的task
+        val launcherTaskName = project.gradle.startParameter.taskNames.firstOrNull { taskName ->
+            taskName.startsWith("${project.path}:assemble", true)
         }
+
+
+        // 避免无效的任务执行
+        if (launcherTaskName.isNullOrBlank()) {
+            FastBuilderLogger.logLifecycle("检测任务不相关不启用替换逻辑")
+            return
+        }
+
+        if (!configBean.enable) {
+            return
+        }
+//        val taskRegex = ".*:(?<taskNameGroup>.*)".toRegex()
+//        val matcher = taskRegex.toPattern().matcher(launcherTaskName)
+//        matcher.matches()
+//        val launchTask = project.tasks.getByName(matcher.group("taskNameGroup"))
+
+//        launchTask.doLast {
+//
+//        }
+        moduleProjectList = propertyFileConfig.prepareByConfig()
+
+        // 全局配置完成后执行
+
+        val starTime = System.currentTimeMillis();
+        //赋值日志是否启用
+        FastBuilderLogger.enableLogging = configBean.logEnable
+
+        // 处理app编译相关的task hack
+        handleHackAppTask(project)
+        // 跳过app的kapt相关的task（仅在缓存有效时跳过）
+        handleSkipAppKaptTask(project)
+        // 处理其他模块编译相关的task hack
+        handleOtherModuleCompile(project)
+        // 跳过其他模块的task（仅在缓存有效时跳过）
+        handleSkipOtherModuleTask()
+        // 保存配置
+        handleConfigSave(project)
+        val endTime = System.currentTimeMillis();
+        FastBuilderLogger.logLifecycle("插件花費的配置時間${endTime - starTime}")
     }
 
     /**
@@ -110,10 +125,14 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
      * 处理其他模块未改动时智能跳过任务
      */
     private fun handleSkipOtherModuleTask() {
-        moduleProjectList = propertyFileConfig.prepareByConfig()
+
         for (moduleProject in moduleProjectList) {
+            if (moduleProject.project == getApplyProject()) {
+                continue
+            }
+
             if (moduleProject.cacheValid) {
-                moduleProject.obtainProject().tasks.all { proTask ->
+                moduleProject.project.tasks.all { proTask ->
                     proTask.onlyIf { false }
                 }
             }
@@ -124,27 +143,29 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
      * hack其他模块的编译任务
      */
     private fun handleOtherModuleCompile(project: Project) {
-        project.rootProject.allprojects { pro ->
-            if (pro != project) {
-                pro.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
-                    Reflect.on(task).set(
-                        FastHackPlugin.INJECT_FIELD_NAME,
-                        ModuleKCompilerTaskProxy(task)
-                    )
-                }
-                pro.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
-                    Reflect.on(task).set(
-                        FastHackPlugin.INJECT_FIELD_NAME,
-                        ModuleKaptTaskProxy(task)
-                    )
-                }
-                pro.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
-                    Reflect.on(task).set(
-                        FastHackPlugin.INJECT_FIELD_NAME,
-                        ModuleKaptTaskProxy(task)
-                    )
-                }
+        for (moduleProject in moduleProjectList) {
+            val pro = moduleProject.project
+            pro.tasks.withType(AbstractKotlinCompile::class.java).all { task ->
+                Reflect.on(task).set(
+                    FastHackPlugin.INJECT_FIELD_NAME,
+                    ModuleKCompilerTaskProxy(task)
+                )
             }
+            pro.tasks.withType(KaptGenerateStubsTask::class.java).all { task ->
+                Reflect.on(task).set(
+                    FastHackPlugin.INJECT_FIELD_NAME,
+                    ModuleKaptTaskProxy(task)
+                )
+            }
+            pro.tasks.withType(KaptWithKotlincTask::class.java).all { task ->
+                Reflect.on(task).set(
+                    FastHackPlugin.INJECT_FIELD_NAME,
+                    ModuleKaptTaskProxy(task)
+                )
+            }
+        }
+        project.rootProject.allprojects { pro ->
+
         }
     }
 
@@ -159,6 +180,7 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
                 for (moduleProject in this.getModuleProjectList()) {
                     this.getPropertyConfig().updateModify(moduleProject)
                 }
+                this.getPropertyConfig().saveAppLastModified()
                 this.getPropertyConfig().saveConfig()
             }
         }
@@ -197,29 +219,9 @@ class FastBuilderPlugin : Plugin<Project>, IPluginContext {
         }
     }
 
-    /**
-     * 判断是否是在编译
-     */
-    private fun currentTaskIsCompile(): Boolean {
-        // 获取有效的启动任务,若没有配置,则采主工程命名的task
-        val launcherTaskName = project.gradle.startParameter.taskNames.firstOrNull { taskName ->
-            if (projectExtension.detectLauncherRegex.isNullOrBlank()) {
-                taskName.contains(project.name)
-            } else {
-                taskName.contains(projectExtension.detectLauncherRegex)
-            }
-        }
-        // 避免无效的任务执行
-        if (launcherTaskName.isNullOrBlank()) {
-            FastBuilderLogger.logLifecycle("检测任务不相关不启用替换逻辑")
-            return true
-        }
-        return false
-    }
 
     override fun getContext(): IPluginContext = this
 
-    override fun getProjectExtension(): ProjectExtension = projectExtension
 
     override fun getApplyProject(): Project = project
 

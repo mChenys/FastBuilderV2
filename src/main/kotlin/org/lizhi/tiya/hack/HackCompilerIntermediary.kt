@@ -84,4 +84,5 @@ open class HackCompilerIntermediary constructor(val task: Task) {
         FastBuilderLogger.logLifecycle("removed ${modified.map { it.file }.map { it.path }}")
         FastBuilderLogger.logLifecycle("------------------------------------------------------------------------")
     }
+
 }

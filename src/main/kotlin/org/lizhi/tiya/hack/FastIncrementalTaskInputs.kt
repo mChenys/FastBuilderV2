@@ -36,4 +36,5 @@ class FastIncrementalTaskInputs(
             action.execute(inputFileDetails)
         }
     }
+
 }

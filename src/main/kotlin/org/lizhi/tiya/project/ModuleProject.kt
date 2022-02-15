@@ -14,25 +14,18 @@
 package org.lizhi.tiya.project
 
 import org.gradle.api.Project
-import org.gradle.api.artifacts.Dependency
-import org.lizhi.tiya.extension.ModuleExtension
 import org.lizhi.tiya.plugin.AppHelper
 import org.lizhi.tiya.plugin.IPluginContext
 
 /**
  * 和module对应的工程
  */
-class ModuleProject(val moduleExtension: ModuleExtension, private val pluginContext: IPluginContext) {
+class ModuleProject(val project: Project, private val pluginContext: IPluginContext) {
 
     /**
      * 缓存是否有效
      */
     var cacheValid = false
-
-    /**
-     * 对应的project
-     */
-    private var project: Project? = null
 
 
     /**
@@ -40,42 +33,23 @@ class ModuleProject(val moduleExtension: ModuleExtension, private val pluginCont
      */
     private var lastModified: Long = 0
 
-    /**
-     * 对应替换的后的依赖声明
-     */
-    private var dependency: Dependency? = null
-
-    /**
-     * 获取关联的project对象
-     */
-    fun obtainProject(): Project {
-        if (this.project == null) {
-            this.project = pluginContext.getApplyProject().project(obtainName())
-
-        }
-        return this.project!!
-    }
-
-
 
     /**
      * 这个project文件下的最后修改时间
      */
     fun obtainLastModified(): Long {
         if (lastModified <= 0) {
-            val moduleProject = obtainProject()
-            lastModified = AppHelper.obtainLastModified(moduleProject)
+            lastModified = AppHelper.obtainLastModified(project)
         }
         return lastModified
     }
 
     /**
-     * 这个对象的名称
+     * 这个project文件下的最后修改时间
      */
-    fun obtainName(): String = moduleExtension.name
-
-
-
+    fun obtainKeyName(): String {
+        return project.path.replace(":", "_")
+    }
 
 
 }

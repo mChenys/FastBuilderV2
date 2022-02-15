@@ -15,7 +15,6 @@ package org.lizhi.tiya.plugin
 
 import org.gradle.api.Project
 import org.lizhi.tiya.config.PropertyFileConfig
-import org.lizhi.tiya.extension.ProjectExtension
 import org.lizhi.tiya.project.ModuleProject
 
 /**
@@ -28,10 +27,6 @@ interface IPluginContext {
      */
     fun getContext(): IPluginContext
 
-    /**
-     * 获取构建的配置项
-     */
-    fun getProjectExtension(): ProjectExtension
 
 
     /**

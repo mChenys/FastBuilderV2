@@ -33,7 +33,10 @@ open class HackJavaCompile : JavaCompile() {
 
     val removed = ArrayList<InputFileDetails>()
 
+
     override fun compile(input: IncrementalTaskInputs) {
+
+
         if (!input.isIncremental) {
             super.compile(input)
         } else {
@@ -64,8 +67,6 @@ open class HackJavaCompile : JavaCompile() {
 
         }
 
-
-        println("触发HackJavaCompile")
     }
 
     private fun filterFile(
@@ -77,7 +78,8 @@ open class HackJavaCompile : JavaCompile() {
             val moFile = moFileDetails.file
             val moPath = moFile.path
             if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt")
-                && !moPath.endsWith(".java")) {
+                && !moPath.endsWith(".java")
+            ) {
                 moIterator.remove()
             } else {
                 if (!moPath.endsWith(".kt") && !moPath.endsWith(".java")) {

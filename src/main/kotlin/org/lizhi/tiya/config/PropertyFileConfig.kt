@@ -18,6 +18,7 @@ import org.gradle.api.Project
 import org.gradle.internal.impldep.aQute.bnd.annotation.component.Modified
 import org.jetbrains.kotlin.gradle.internal.KaptGenerateStubsTask
 import org.jetbrains.kotlin.gradle.internal.KaptWithKotlincTask
+import org.lizhi.tiya.fileutil.PluginFileHelper
 import org.lizhi.tiya.log.FastBuilderLogger
 import org.lizhi.tiya.plugin.AppHelper
 import org.lizhi.tiya.plugin.IPluginContext
@@ -38,36 +39,14 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
 
     var isInit = false
 
-    private val fileName = "FastBuilder.properties"
 
     private fun getPropertyInfo(): Properties {
         if (!isInit) {
-            val moduleAarsDir = pluginContext.getProjectExtension().moduleAarsDir
-            if (!moduleAarsDir.exists()) {
-                moduleAarsDir.mkdirs()
-            }
-            val configFile = File(moduleAarsDir, fileName)
-            if (!configFile.exists()) {
-                configFile.createNewFile()
-            } else {
-                props.load(FileReader(configFile))
-            }
-            if (configFile.exists()) {
-                props.load(FileReader(configFile))
-            }
+            props.load(FileReader(getCacheFile()))
         }
         isInit = true
         return props
     }
-
-    /**
-     * 是否存在配置文件
-     */
-    fun existConfigFile(): Boolean {
-        val configFile = File(pluginContext.getProjectExtension().moduleAarsDir, fileName)
-        return configFile.exists() && configFile.length() > 0
-    }
-
 
     /**
      * 缓存是否有效
@@ -75,12 +54,12 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
     fun isCacheValid(project: ModuleProject): Boolean {
         val propertyInfo = getPropertyInfo()
         val currentModify = project.obtainLastModified()
-        val lastModify = propertyInfo.getProperty(project.moduleExtension.aarName)
+        val lastModify = propertyInfo.getProperty(project.obtainKeyName())
         if (currentModify.toString() == lastModify) {
-            FastBuilderLogger.logLifecycle("${project.moduleExtension.name} found cache aar.")
+            FastBuilderLogger.logLifecycle("${project.project.name} found cache aar.")
             return true
         }
-        FastBuilderLogger.logLifecycle("${project.moduleExtension.name} aar cache invalid.")
+        FastBuilderLogger.logLifecycle("${project.project.name} aar cache invalid.")
         return false
     }
 
@@ -90,7 +69,7 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
     fun updateModify(project: ModuleProject) {
         val propertyInfo = getPropertyInfo()
         val curAARProLastModified = project.obtainLastModified()
-        propertyInfo.setProperty(project.moduleExtension.aarName, curAARProLastModified.toString())
+        propertyInfo.setProperty(project.obtainKeyName(), curAARProLastModified.toString())
     }
 
     /**
@@ -100,22 +79,45 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
         // 先保存app的缓存
         saveAppLastModified()
         val propertyInfo = getPropertyInfo()
-        val moduleAarsDir = pluginContext.getProjectExtension().moduleAarsDir
-        val configFile = File(moduleAarsDir, fileName)
-        propertyInfo.store(FileWriter(configFile), "用于存储缓存aar映射关系")
+
+        propertyInfo.store(
+            FileWriter(getCacheFile()),
+            "用于存储缓存aar映射关系"
+        )
+    }
+
+    fun getCacheFile(): File {
+        return PluginFileHelper.obtainCacheFile(pluginContext.getApplyProject())
     }
 
     /**
      * 通过配置初始化
      */
     fun prepareByConfig(): List<ModuleProject> {
-        // 读取工程配置的子模块配置,并转成对应的模块工程对象
-        val moduleProjectList = pluginContext.getProjectExtension().moduleExtension.toList().map {
-            it.convertModuleProject(pluginContext)
-        }
-        //启用了kapt优化
-        val countDownLatch = CountDownLatch(moduleProjectList.size)
 
+        val configBean = PluginFileHelper.readConfig(pluginContext.getApplyProject())
+
+        val moduleProjectList = mutableListOf<ModuleProject>()
+
+        for (curProject in pluginContext.getApplyProject().rootProject.allprojects) {
+
+            if (curProject == pluginContext.getApplyProject().rootProject) {
+                continue
+            }
+            if (curProject == pluginContext.getApplyProject()) {
+                continue
+            }
+
+            if (!configBean.exclude.contains(curProject.path)) {
+                moduleProjectList.add(ModuleProject(curProject, pluginContext))
+            }
+        }
+
+
+        // 读取工程配置的子模块配置,并转成对应的模块工程对象
+
+        val countDownLatch = CountDownLatch(moduleProjectList.size)
+//
         var hasErr = false
         // 开启多线程处理
         for (moduleProject in moduleProjectList) {
@@ -130,7 +132,7 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
                 }
             }
         }
-
+//
         countDownLatch.await()
         if (hasErr) {
             throw GradleException("FastBuilderPlugin插件在初始化模块进程出错，请确保配置的模块存在")
@@ -152,6 +154,7 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
         val name = pluginContext.getApplyProject().name.replace(":", "")
         return propertyInfo.getProperty(name, "0").toLong()
     }
+
     /**
      * app的缓存是否有效
      */
