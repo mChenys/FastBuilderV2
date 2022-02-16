@@ -18,7 +18,10 @@ import javassist.bytecode.AnnotationsAttribute
 import javassist.bytecode.annotation.Annotation
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.logging.Logging
 import org.lizhi.tiya.fileutil.PluginFileHelper
+import org.lizhi.tiya.log.FastBuilderLogger
+import java.util.*
 
 /**
  * 用于注入HackCompilerIntermediary类字段和hack AbstractKotlinCompile和KaptWithKotlincTask的task方法执行
@@ -80,9 +83,21 @@ class FastHackPlugin : Plugin<Project> {
         cp.insertClassPath(ClassClassPath(this.javaClass))
         cp.insertClassPath(LoaderClassPath(this.javaClass.classLoader.parent))
         cp.importPackage("org.jetbrains.kotlin.gradle.tasks")
-        loadFlagClass()
-        handleJavaCompile()
-        handleKotlinCompile()
+        try {
+            loadFlagClass()
+            handleJavaCompile()
+            handleKotlinCompile()
+        } catch (e: Exception) {
+            project.exec {
+                val cmd = "${project.rootProject.rootDir}/gradlew --stop"
+                if (System.getProperty("os.name").toLowerCase(Locale.ROOT).contains("windows")) {
+                    it.commandLine = listOf("cmd", "/c", cmd)
+                } else {
+                    it.commandLine = listOf("sh", "-c", cmd)
+                }
+                Logging.getLogger(project::class.java).error("\n插件注入异常,请重新编译!!!")
+            }
+        }
     }
 
     /**
@@ -93,7 +108,7 @@ class FastHackPlugin : Plugin<Project> {
         val classLoader = this.javaClass.classLoader.parent
         if (!flagClass.isFrozen) {
             try {
-                flagClass.toClass(classLoader) // 转成java class目的是啥
+                flagClass.toClass(classLoader)
             } catch (e: Exception) {
             }
         }
