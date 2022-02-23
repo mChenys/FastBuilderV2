@@ -35,12 +35,20 @@ object PluginFileHelper {
         return project.rootProject.file("./.gradle/.fasterBuilderV2")
     }
 
+    fun obtainCacheDir(project: Project): File {
+        val cache = File(project.rootProject.buildDir, ".fast_builder_cache")
+        if (!cache.exists()) {
+            cache.mkdirs()
+        }
+        return cache
+    }
+
     fun obtainConfigFile(project: Project): File {
         return File(obtainConfigDir(project), "jsonConfig")
     }
 
     fun obtainCacheFile(project: Project): File {
-        return File(obtainConfigDir(project), "cacheResult.properties")
+        return File(obtainCacheDir(project), "cacheResult.properties")
     }
 
     fun readConfig(applyProject: Project): ConfigBean {

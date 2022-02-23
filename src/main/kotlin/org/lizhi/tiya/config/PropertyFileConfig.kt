@@ -56,10 +56,10 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
         val currentModify = project.obtainLastModified()
         val lastModify = propertyInfo.getProperty(project.obtainKeyName())
         if (currentModify.toString() == lastModify) {
-            FastBuilderLogger.logLifecycle("${project.project.name} found cache aar.")
+            FastBuilderLogger.logLifecycle("${project.project.name} found cache .")
             return true
         }
-        FastBuilderLogger.logLifecycle("${project.project.name} aar cache invalid.")
+        FastBuilderLogger.logLifecycle("${project.project.name}  cache invalid.")
         return false
     }
 
@@ -82,7 +82,7 @@ class PropertyFileConfig(private val pluginContext: IPluginContext) {
 
         propertyInfo.store(
             FileWriter(getCacheFile()),
-            "用于存储缓存aar映射关系"
+            "用于存储缓存模块映射关系"
         )
     }
 
