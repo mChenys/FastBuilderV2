@@ -23,41 +23,52 @@ import org.lizhi.tiya.hack.HackCompilerIntermediary
  */
 class AppKaptTaskProxy constructor(task: Task) : HackCompilerIntermediary(task) {
 
+    override fun hackTaskAction(input: IncrementalTaskInputs): Boolean {
+        return task.name.startsWith("kapt", true) && input.isIncremental
+                && removed.isEmpty() && modified.isEmpty()
+    }
 
     override fun filterFile(
         moIterator: MutableIterator<InputFileDetails>,
         buildDir: String
     ) {
-        val isKapt = task.name.startsWith("kapt", true)
-        if (isKapt) {
-            while (moIterator.hasNext()) {
-                val moFileDetails = moIterator.next()
-                val moFile = moFileDetails.file
-                val moPath = moFile.path
-                if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
+
+        while (moIterator.hasNext()) {
+            val moFileDetails = moIterator.next()
+            val moFile = moFileDetails.file
+            val moPath = moFile.path
+            val isClassFile = (moPath.endsWith(".kt", true) || moPath.endsWith(".java", true))
+            if (!moFile.path.startsWith(buildDir) && !moPath.endsWith(".kt")
+                && !moPath.endsWith(".java")
+            ) {
+                moIterator.remove()
+            } else {
+                if (moFileDetails.isRemoved) {
+                    continue
+                }
+                if (moPath.endsWith(".jar", true)) {
                     moIterator.remove()
-                } else {
-                    if (moPath.endsWith(".jar", true)) {
-                        moIterator.remove()
-                        continue
-                    }
-                    if (moPath.endsWith(".kt") || moPath.endsWith(".java")) {
-                        moIterator.remove()
-                        continue
-                    }
-                    if (!moPath.endsWith(".kt") && !moPath.endsWith(".java")) {
-                        moIterator.remove()
-                        continue
-                    }
+                    continue
                 }
 
+                if (isClassFile &&  moFileDetails.isAdded) {
+                    continue
+                }
+
+
+//                //todo 这里应该根据内容来定义是否生产
+//                if ((moPath.endsWith(".kt") || moPath.endsWith(".java"))) {
+//                    moIterator.remove()
+//                    continue
+//                }
+
+//                if (!isClassFile) {
+//                    moIterator.remove()
+//                    continue
+//                }
+                moIterator.remove()
             }
+
         }
-
-    }
-
-    override fun hackTaskAction(input: IncrementalTaskInputs): Boolean {
-        return task.name.startsWith("kapt", true)
-                && input.isIncremental && removed.isEmpty() && modified.isEmpty()
     }
 }
