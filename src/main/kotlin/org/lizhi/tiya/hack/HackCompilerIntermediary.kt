@@ -70,7 +70,7 @@ open class HackCompilerIntermediary constructor(val task: Task) {
         FastBuilderLogger.logLifecycle("-----------------------------------过滤前结果-------------------------------------")
         FastBuilderLogger.logLifecycle("+++++++++ ${task.project.name}:${task.name}: isIncremental ${input.isIncremental}+++++")
         FastBuilderLogger.logLifecycle("modified ${modified.map { it.file }.map { it.path }}")
-        FastBuilderLogger.logLifecycle("removed ${modified.map { it.file }.map { it.path }}")
+        FastBuilderLogger.logLifecycle("removed ${removed.map { it.file }.map { it.path }}")
         FastBuilderLogger.logLifecycle("------------------------------------------------------------------------")
     }
 
@@ -81,7 +81,7 @@ open class HackCompilerIntermediary constructor(val task: Task) {
         FastBuilderLogger.logLifecycle("-------------------------------过滤后结果-----------------------------------------")
         FastBuilderLogger.logLifecycle("+++++++++ ${task.project.name}:${task.name}: isIncremental ${input.isIncremental}+++++")
         FastBuilderLogger.logLifecycle("modified ${modified.map { it.file }.map { it.path }}")
-        FastBuilderLogger.logLifecycle("removed ${modified.map { it.file }.map { it.path }}")
+        FastBuilderLogger.logLifecycle("removed ${removed.map { it.file }.map { it.path }}")
         FastBuilderLogger.logLifecycle("------------------------------------------------------------------------")
     }
 
